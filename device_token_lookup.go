@@ -10,7 +10,7 @@ import (
 
 const APP_KEY = "xx"
 const MASTER_SECRET = "xx"
-const CPN = "xx"
+const ALIAS = "xx"
 const API_URL = "go.urbanairship.com/api/device_tokens"
 const LIMIT = "10000"
 
@@ -57,7 +57,7 @@ func load_json(urlstring string) {
 
 	for i, device := range data.Device_tokens {
 		_ = i
-		if device.Alias == CPN {
+		if device.Alias == ALIAS {
 			devices = append(devices, device)
 			fmt.Printf("%d\nDevice Token : %s\nAlias : %s\nTags : %s\n\n====\n\n", i, device.Device_token, device.Alias, strings.Join(device.Tags, ","))
 		}
