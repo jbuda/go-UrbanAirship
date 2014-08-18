@@ -12,9 +12,12 @@ const APP_KEY = "xx"
 const MASTER_SECRET = "xx"
 const ALIAS = "xx"
 const API_URL = "go.urbanairship.com/api/device_tokens"
-const LIMIT = "10000"
+const LIMIT = 10000
 
 var devices []Device_info
+var counter int = 1
+var upper int = 0
+var lower int = counter
 
 type Feed struct {
 	Next_page                  string
@@ -33,7 +36,7 @@ type Device_info struct {
 func main() {
 	fmt.Printf("\nDevice Token Lookup\n----------------\n")
 	fmt.Printf("App Key : " + APP_KEY + "\nMaster Secret : " + MASTER_SECRET + "\n")
-	fmt.Printf("CPN : " + CPN + "\n")
+	fmt.Printf("Alias : " + ALIAS + "\n")
 	fmt.Printf("----------------\n")
 
 	urlStr := fmt.Sprintf("https://%v:%v@%v?limit=%v", APP_KEY, MASTER_SECRET, API_URL, LIMIT)
@@ -52,19 +55,24 @@ func load_json(urlstring string) {
 	var data Feed
 	json.Unmarshal(body, &data)
 
+	upper = counter * LIMIT
+	fmt.Printf("\nRecords : %d - %d", lower, upper)
+	lower = upper + 1
+
 	fmt.Printf("\nRunning %v", urlstring)
-	//fmt.Printf("\nNumber of device tokens : %d\nNumber of active device tokens : %d\nNext page : %s\n\n====\n\n", data.Device_tokens_count, data.Active_device_tokens_count, data.Next_page)
 
 	for i, device := range data.Device_tokens {
 		_ = i
 		if device.Alias == ALIAS {
 			devices = append(devices, device)
-			fmt.Printf("%d\nDevice Token : %s\nAlias : %s\nTags : %s\n\n====\n\n", i, device.Device_token, device.Alias, strings.Join(device.Tags, ","))
+			fmt.Printf("\n\n====\n\n%d\nDevice Token : %s\nAlias : %s\nTags : %s\n\n====\n\n", i, device.Device_token, device.Alias, strings.Join(device.Tags, ","))
 		}
 	}
 
 	if data.Next_page != "" {
 		urlStr := fmt.Sprintf("https://%v:%v@%v?%v", APP_KEY, MASTER_SECRET, API_URL, strings.Split(data.Next_page, "?")[1])
+
+		counter++
 		load_json(urlStr)
 	} else {
 
