@@ -82,7 +82,7 @@ func load_json(urlstring string) {
 		}
 	}
 
-	if data.Next_page != "" && counter < 3 {
+	if data.Next_page != "" {
 
 		urlStr := fmt.Sprintf("%v?%v", base_url, strings.Split(data.Next_page, "?")[1])
 		load_json(urlStr)
