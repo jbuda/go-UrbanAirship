@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,12 +11,11 @@ import (
 	"time"
 )
 
-const APP_KEY = "<APP_KEY>"
-const MASTER_SECRET = "<MASTER_SECRET>"
-const ALIAS = ""
 const API_URL = "go.urbanairship.com/api/device_tokens"
 const LIMIT = 10000
 
+var base_url string
+var alias string
 var devices []Device_info
 var counter int = 0
 var upper int = 0
@@ -36,12 +36,24 @@ type Device_info struct {
 }
 
 func main() {
+
+	appKeyPtr := flag.String("key", "", "App Key")
+	masterSecretPtr := flag.String("secret", "", "App Master Secret")
+	aliasPtr := flag.String("alias", "", "Alias to filter device tokens on")
+
+	flag.Parse()
+
+	checkArguments(*appKeyPtr, *masterSecretPtr)
+
+	alias = *aliasPtr
+
 	fmt.Printf("\nDevice Tokens\n----------------\n")
-	fmt.Printf("App Key : " + APP_KEY + "\nMaster Secret : " + MASTER_SECRET + "\n")
-	fmt.Printf("Alias : " + ALIAS + "\n")
+	fmt.Printf("App Key : " + *appKeyPtr + "\nMaster Secret : " + *masterSecretPtr + "\n")
+	fmt.Printf("Alias : " + alias + "\n")
 	fmt.Printf("----------------\n")
 
-	urlStr := fmt.Sprintf("https://%v:%v@%v?limit=%v", APP_KEY, MASTER_SECRET, API_URL, LIMIT)
+	base_url = fmt.Sprintf("https://%v:%v@%v", *appKeyPtr, *masterSecretPtr, API_URL)
+	urlStr := fmt.Sprintf("%v?limit=%v", base_url, LIMIT)
 
 	load_json(urlStr)
 }
@@ -65,13 +77,14 @@ func load_json(urlstring string) {
 	fmt.Printf("\nRunning %v", urlstring)
 
 	for _, device := range data.Device_tokens {
-		if device.Alias == ALIAS || ALIAS == "" {
+		if device.Alias == alias || alias == "" {
 			devices = append(devices, device)
 		}
 	}
 
-	if data.Next_page != "" && counter < 5 {
-		urlStr := fmt.Sprintf("https://%v:%v@%v?%v", APP_KEY, MASTER_SECRET, API_URL, strings.Split(data.Next_page, "?")[1])
+	if data.Next_page != "" && counter < 3 {
+
+		urlStr := fmt.Sprintf("%v?%v", base_url, strings.Split(data.Next_page, "?")[1])
 		load_json(urlStr)
 
 	} else {
@@ -95,4 +108,11 @@ func writeToFile() (file string) {
 	f.Close()
 
 	return file
+}
+
+func checkArguments(key string, secret string) {
+	if key == "" || secret == "" {
+		fmt.Printf("\n\n=========\nError\nApp Key and Master Secret keys required\n=========\n\n")
+		os.Exit(1)
+	}
 }
