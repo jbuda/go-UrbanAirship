@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 )
 
-const APP_KEY = "xx"
-const MASTER_SECRET = "xx"
-const ALIAS = "xx"
+const APP_KEY = "<APP_KEY>"
+const MASTER_SECRET = "<MASTER_SECRET>"
+const ALIAS = ""
 const API_URL = "go.urbanairship.com/api/device_tokens"
 const LIMIT = 10000
 
 var devices []Device_info
-var counter int = 1
+var counter int = 0
 var upper int = 0
 var lower int = counter
 
@@ -28,13 +30,13 @@ type Feed struct {
 
 type Device_info struct {
 	Device_token string
-	Active       string
+	Active       bool
 	Alias        string
 	Tags         []string
 }
 
 func main() {
-	fmt.Printf("\nDevice Token Lookup\n----------------\n")
+	fmt.Printf("\nDevice Tokens\n----------------\n")
 	fmt.Printf("App Key : " + APP_KEY + "\nMaster Secret : " + MASTER_SECRET + "\n")
 	fmt.Printf("Alias : " + ALIAS + "\n")
 	fmt.Printf("----------------\n")
@@ -46,6 +48,7 @@ func main() {
 
 func load_json(urlstring string) {
 
+	counter++
 	client := &http.Client{}
 	r, _ := http.NewRequest("GET", urlstring, nil)
 
@@ -61,29 +64,35 @@ func load_json(urlstring string) {
 
 	fmt.Printf("\nRunning %v", urlstring)
 
-	for i, device := range data.Device_tokens {
-		_ = i
-		if device.Alias == ALIAS {
+	for _, device := range data.Device_tokens {
+		if device.Alias == ALIAS || ALIAS == "" {
 			devices = append(devices, device)
-			fmt.Printf("\n\n====\n\n%d\nDevice Token : %s\nAlias : %s\nTags : %s\n\n====\n\n", i, device.Device_token, device.Alias, strings.Join(device.Tags, ","))
 		}
 	}
 
-	if data.Next_page != "" {
+	if data.Next_page != "" && counter < 5 {
 		urlStr := fmt.Sprintf("https://%v:%v@%v?%v", APP_KEY, MASTER_SECRET, API_URL, strings.Split(data.Next_page, "?")[1])
-
-		counter++
 		load_json(urlStr)
+
 	} else {
-
-		fmt.Printf("\nDevice tokens\n")
-
-		for _, el := range devices {
-			fmt.Printf("\n%v ~ %v", el.Device_token, el.Alias)
-		}
-
-		fmt.Printf("\n\n=========\nCompleted\n=========\n\n")
-
+		file := writeToFile()
+		fmt.Printf("\n\n=========\nCompleted\nOutput file : %v\n=========\n\n", file)
 	}
 
+}
+
+func writeToFile() (file string) {
+
+	file = fmt.Sprintf("devices_%v.txt", int32(time.Now().Unix()))
+
+	f, _ := os.Create(file)
+	f.WriteString("id\tdevice token\talias\ttags\tactive")
+
+	for idx, device := range devices {
+		f.WriteString(fmt.Sprintf("\n%d\t%s\t%s\t%s\t%t", idx+1, device.Device_token, device.Alias, strings.Join(device.Tags, ","), device.Active))
+	}
+
+	f.Close()
+
+	return file
 }
